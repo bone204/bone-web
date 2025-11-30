@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoginModal } from "./login.modal";
 
 type NavItem = {
   label: string;
@@ -20,14 +21,15 @@ function AppHeader() {
   const pathname = usePathname();
   const [isSolid, setIsSolid] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const handleScroll = () => {
       const current = window.scrollY;
       setIsSolid(current > 120);
     };
 
+    setTimeout(() => setMounted(true), 0);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -43,24 +45,38 @@ function AppHeader() {
           <span className="brand-icon">✈</span>
           <span className="brand-text">Bone Travel</span>
         </Link>
-        <nav className="tabs" role="tablist" aria-label="Điều hướng chính">
-          {navItems.map((item) => {
-            const active = mounted && pathname?.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                role="tab"
-                aria-selected={active}
-                aria-label={item.label}
-                className={"tab-link" + (active ? " active" : "")}
-              >
-                <span className="tab-label">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="app-header__actions">
+          <nav className="tabs" role="tablist" aria-label="Điều hướng chính">
+            {navItems.map((item) => {
+              const active = mounted && pathname?.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={item.label}
+                  className={"tab-link" + (active ? " active" : "")}
+                >
+                  <span className="tab-label">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="app-header__auth">
+            <button 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="app-header__auth-btn app-header__auth-btn--login"
+            >
+              Đăng nhập
+            </button>
+            <Link href="/register" className="app-header__auth-btn app-header__auth-btn--register">
+              Đăng ký
+            </Link>
+          </div>
+        </div>
       </div>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </header>
   );
 }
