@@ -1,4 +1,5 @@
 import { HeroCarousel } from "@/components/hero.carousel";
+import { StatsSection } from "@/components/stats.section";
 
 const featuredStories = [
   {
@@ -19,6 +20,7 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <HeroCarousel />
+      <StatsSection />
 
       <section className="home-page__cards">
         {featuredStories.map((story) => (

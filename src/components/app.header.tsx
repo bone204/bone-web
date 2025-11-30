@@ -19,8 +19,10 @@ const navItems: NavItem[] = [
 function AppHeader() {
   const pathname = usePathname();
   const [isSolid, setIsSolid] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       const current = window.scrollY;
       setIsSolid(current > 120);
@@ -43,7 +45,7 @@ function AppHeader() {
         </Link>
         <nav className="tabs" role="tablist" aria-label="Điều hướng chính">
           {navItems.map((item) => {
-            const active = pathname?.startsWith(item.href);
+            const active = mounted && pathname?.startsWith(item.href);
             return (
               <Link
                 key={item.href}

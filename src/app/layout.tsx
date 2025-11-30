@@ -11,7 +11,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <AppHeader />
         <main className="app-shell">{children}</main>
         <AppFooter />
