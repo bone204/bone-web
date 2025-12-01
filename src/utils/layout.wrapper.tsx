@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import AppHeader from "@/components/app.header";
 import AppFooter from "@/components/app.footer";
+import { AuthGuard } from "@/utils/auth.guard";
 import { isFullscreenRoute } from "@/config/routes.config";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     <>
       {!isFullscreen && <AppHeader />}
       <main className={`app-shell ${isFullscreen ? "app-shell--fullscreen" : ""}`}>
-        {children}
+        <AuthGuard>{children}</AuthGuard>
       </main>
       {!isFullscreen && <AppFooter />}
     </>

@@ -4,6 +4,7 @@
  */
 export const FULLSCREEN_ROUTES = [
   "/empty-page",
+  "/dashboard",
   // Thêm các routes khác cần fullscreen ở đây
   // Ví dụ: "/checkout", "/payment", "/admin", etc.
 ] as const;

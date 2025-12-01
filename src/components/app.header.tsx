@@ -13,7 +13,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { label: "Điểm đến", href: "/bone" },
+  { label: "Điểm đến", href: "/empty-page" },
   { label: "Tour", href: "/empty-page" },
   { label: "Khách sạn", href: "/empty-page" },
   { label: "Liên hệ", href: "/empty-page" },

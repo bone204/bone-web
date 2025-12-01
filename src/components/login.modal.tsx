@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { login } from "@/services/auth.service";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -9,15 +11,20 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      // Reset form when modal opens
+      setFormData({ username: "", password: "" });
+      setError(null);
     } else {
       document.body.style.overflow = "";
     }
@@ -28,13 +35,28 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log("Login:", formData);
+
+    try {
+      await login({
+        username: formData.username,
+        password: formData.password,
+      });
+      
+      // Login successful, close modal and redirect to dashboard
       onClose();
-    }, 1000);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Đăng nhập thất bại. Vui lòng thử lại."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +64,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
   if (!isOpen) return null;
@@ -73,19 +97,25 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </div>
 
           <form className="login-modal__form" onSubmit={handleSubmit}>
+            {error && (
+              <div className="login-modal__error">
+                {error}
+              </div>
+            )}
             <div className="login-modal__form-group">
-              <label htmlFor="modal-email" className="login-modal__label">
-                Email hoặc số điện thoại
+              <label htmlFor="modal-username" className="login-modal__label">
+                Tên đăng nhập
               </label>
               <input
                 type="text"
-                id="modal-email"
-                name="email"
-                value={formData.email}
+                id="modal-username"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
                 className="login-modal__input"
-                placeholder="Nhập email hoặc số điện thoại"
+                placeholder="Nhập tên đăng nhập"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -102,6 +132,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 className="login-modal__input"
                 placeholder="Nhập mật khẩu"
                 required
+                disabled={isLoading}
               />
             </div>
 
