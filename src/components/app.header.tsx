@@ -51,7 +51,7 @@ function AppHeader() {
               const active = mounted && pathname?.startsWith(item.href);
               return (
                 <Link
-                  key={item.href}
+                  key={item.label}
                   href={item.href}
                   role="tab"
                   aria-selected={active}

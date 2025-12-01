@@ -853,6 +853,28 @@ a {
     line-height: 1.6;
     margin: 0;
     flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .location-card__read-more {
+    display: inline-flex;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0ea5e9;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .location-card__read-more::after {
+    content: "→";
+    font-size: 0.9rem;
+  }
+  .location-card__link:hover .location-card__read-more {
+    color: #0284c7;
   }
   .location-card__price {
     display: flex;

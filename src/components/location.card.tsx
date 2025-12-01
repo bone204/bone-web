@@ -45,6 +45,7 @@ export function LocationCard({
           )}
           <h3 className="location-card__title">{name}</h3>
           <p className="location-card__description">{description}</p>
+          <span className="location-card__read-more">Xem thêm</span>
           {price && (
             <div className="location-card__price">
               <span className="location-card__price-label">Từ</span>
