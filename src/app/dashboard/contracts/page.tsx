@@ -13,9 +13,23 @@ export default function ContractsPage() {
     const [q, setQ] = useState<string>("");
     const [page, setPage] = useState<number>(1);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
     const [selectedContract, setSelectedContract] = useState<ContractItem | null>(null);
     const pageSize = 6;
     const router = useRouter();
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setOpenDropdown(null);
+            setDropdownPosition(null);
+        };
+
+        if (openDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [openDropdown]);
 
     useEffect(() => {
         let mounted = true;
@@ -242,63 +256,27 @@ export default function ContractsPage() {
                                                 <td style={{ color: "#64748b", fontSize: "0.85rem" }}>
                                                     {formatDate(contract.createdAt)}
                                                 </td>
-                                                <td style={{ position: "relative" }}>
+                                                <td className="contract-action-cell">
                                                     <button
                                                         className="contract-action-btn"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            const windowHeight = window.innerHeight;
+                                                            const dropdownHeight = 180;
+                                                            
+                                                            const spaceBelow = windowHeight - rect.bottom;
+                                                            const shouldShowAbove = spaceBelow < dropdownHeight;
+                                                            
+                                                            setDropdownPosition({
+                                                                top: shouldShowAbove ? rect.top - dropdownHeight : rect.bottom + 2,
+                                                                right: window.innerWidth - rect.right
+                                                            });
                                                             setOpenDropdown(openDropdown === contract.id ? null : contract.id);
                                                         }}
                                                     >
                                                         ⋮
                                                     </button>
-                                                    {openDropdown === contract.id && (
-                                                        <div className="contract-dropdown" onClick={(e) => e.stopPropagation()}>
-                                                            <button
-                                                                className="contract-dropdown-item"
-                                                                onClick={() => handleViewDetail(contract)}
-                                                            >
-                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                                    <circle cx="12" cy="12" r="3" />
-                                                                </svg>
-                                                                Chi tiết
-                                                            </button>
-                                                            {contract.status === ContractStatus.PENDING && (
-                                                                <>
-                                                                    <button
-                                                                        className="contract-dropdown-item contract-dropdown-item--success"
-                                                                        onClick={() => handleApproveContract(contract.id)}
-                                                                    >
-                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                            <polyline points="20 6 9 17 4 12" />
-                                                                        </svg>
-                                                                        Duyệt
-                                                                    </button>
-                                                                    <button
-                                                                        className="contract-dropdown-item contract-dropdown-item--warning"
-                                                                        onClick={() => handleRejectContract(contract.id)}
-                                                                    >
-                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                                                        </svg>
-                                                                        Từ chối
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            <button
-                                                                className="contract-dropdown-item contract-dropdown-item--danger"
-                                                                onClick={() => handleDeleteContract(contract.id)}
-                                                            >
-                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                    <polyline points="3 6 5 6 21 6" />
-                                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                                                </svg>
-                                                                Xóa
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -333,6 +311,71 @@ export default function ContractsPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Dropdown menu - rendered outside table */}
+            {openDropdown && dropdownPosition && (
+                <div 
+                    className="contract-dropdown-fixed"
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownPosition.top}px`,
+                        right: `${dropdownPosition.right}px`,
+                        zIndex: 1000
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {pageData.find(c => c.id === openDropdown) && (() => {
+                        const contract = pageData.find(c => c.id === openDropdown)!;
+                        return (
+                            <>
+                                <button
+                                    className="contract-dropdown-item"
+                                    onClick={() => handleViewDetail(contract)}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                    Chi tiết
+                                </button>
+                                {contract.status === ContractStatus.PENDING && (
+                                    <>
+                                        <button
+                                            className="contract-dropdown-item contract-dropdown-item--success"
+                                            onClick={() => handleApproveContract(contract.id)}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                            Duyệt
+                                        </button>
+                                        <button
+                                            className="contract-dropdown-item contract-dropdown-item--warning"
+                                            onClick={() => handleRejectContract(contract.id)}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                            Từ chối
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    className="contract-dropdown-item contract-dropdown-item--danger"
+                                    onClick={() => handleDeleteContract(contract.id)}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <polyline points="3 6 5 6 21 6" />
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                    Xóa
+                                </button>
+                            </>
+                        );
+                    })()}
+                </div>
             )}
 
             {selectedContract && (
