@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import travelIcon from "@/assets/icon/travel.svg";
 import { login } from "@/services/auth.service";
 
 interface LoginModalProps {
@@ -89,8 +91,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <div className="login-modal__card">
           <div className="login-modal__header">
             <div className="login-modal__logo">
-              <span className="login-modal__logo-icon">✈</span>
-              <span className="login-modal__logo-text">Bone Travel</span>
+              <Image
+                src={travelIcon}
+                alt="Traveline Logo"
+                width={40}
+                height={40}
+                className="login-modal__logo-icon"
+              />
+              <span className="login-modal__logo-text">Traveline</span>
             </div>
             <h2 className="login-modal__title">Đăng nhập</h2>
             <p className="login-modal__subtitle">Chào mừng bạn trở lại!</p>
@@ -188,4 +196,3 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     </div>
   );
 }
-
