@@ -36,7 +36,7 @@
     border-radius: 10px;
     color: #0f172a; 
   }
-  .dashboard-sidebar__link:hover {
+  .dashboard-sidebar__link:hover:not(.active) {
     background: rgba(14, 165, 233, 0.08);
   }
   .dashboard-sidebar__link-icon svg {
@@ -3861,7 +3861,7 @@ a {
     font-weight: 500;
   }
 
-  .dashboard-sidebar__link:hover {
+  .dashboard-sidebar__link:hover:not(.active) {
     background-color: #eff6ff;
     color: #1d4ed8;
   }
