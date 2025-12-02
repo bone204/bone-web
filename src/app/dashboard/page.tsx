@@ -1,155 +1,58 @@
 "use client";
 
-export default function DashboardPage() {
+export default function DashboardHome() {
   return (
-    <div className="board-view">
-      <div className="board-header">
-        <h1 className="board-title">Board</h1>
-        <div className="board-filters">
-            <span className="filter-text">This week</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 9l6 6 6-6"/>
-            </svg>
+    <div className="dashboard-home">
+      <h1 className="dashboard-title">Welcome back, User!</h1>
+      <p className="dashboard-subtitle">Here's what's happening with your projects today.</p>
+      
+      <div className="dashboard-stats-grid">
+        <div className="stat-card">
+            <h3>Total Projects</h3>
+            <p className="stat-value">12</p>
+            <span className="stat-change positive">+2 this week</span>
+        </div>
+        <div className="stat-card">
+            <h3>Active Tasks</h3>
+            <p className="stat-value">24</p>
+            <span className="stat-change neutral">Same as yesterday</span>
+        </div>
+        <div className="stat-card">
+            <h3>Team Members</h3>
+            <p className="stat-value">8</p>
+            <span className="stat-change positive">+1 new member</span>
+        </div>
+        <div className="stat-card">
+            <h3>Hours Tracked</h3>
+            <p className="stat-value">142</p>
+            <span className="stat-change negative">-5% from last week</span>
         </div>
       </div>
 
-      <div className="board-columns">
-        {/* To do Column */}
-        <div className="board-column">
-          <div className="column-header">
-            <div className="header-left">
-                <div className="status-indicator todo"></div>
-                <span className="column-title">To do</span>
-                <span className="column-count">3</span>
-            </div>
-            <div className="header-actions">
-                <button className="add-btn">+</button>
-                <button className="more-btn">...</button>
-            </div>
-          </div>
-          
-          <div className="column-content">
-            <div className="task-card">
-                <div className="card-header">
-                    <span className="tag design">Design System</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Hero section</h3>
-                <p className="card-desc">Create a design system for a hero section in 2 different variants.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar blue">VH</div>
-                        <div className="member-avatar orange">AG</div>
-                    </div>
+      <div className="dashboard-section">
+        <h2>Recent Activity</h2>
+        <div className="activity-list">
+            <div className="activity-item">
+                <div className="activity-icon blue"></div>
+                <div className="activity-content">
+                    <p><strong>New task added</strong> to <span className="highlight">Design System</span></p>
+                    <span className="activity-time">2 hours ago</span>
                 </div>
             </div>
-
-            <div className="task-card">
-                <div className="card-header">
-                    <span className="tag typography">Typography</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Typography change</h3>
-                <p className="card-desc">Modify typography and styling of text placed on 6 screens.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar pink">ML</div>
-                    </div>
+             <div className="activity-item">
+                <div className="activity-icon green"></div>
+                <div className="activity-content">
+                    <p><strong>Project completed</strong>: <span className="highlight">Mobile App Redesign</span></p>
+                    <span className="activity-time">5 hours ago</span>
                 </div>
             </div>
-          </div>
-        </div>
-
-        {/* In Progress Column */}
-        <div className="board-column">
-          <div className="column-header">
-            <div className="header-left">
-                <div className="status-indicator progress"></div>
-                <span className="column-title">In progress</span>
-                <span className="column-count">1</span>
-            </div>
-            <div className="header-actions">
-                <button className="add-btn">+</button>
-                <button className="more-btn">...</button>
-            </div>
-          </div>
-
-          <div className="column-content">
-            <div className="task-card">
-                <div className="card-header">
-                    <span className="tag development">Development</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Implement design screens</h3>
-                <p className="card-desc">Our designers created 6 screens for a website that needs to be implemented.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar blue">VH</div>
-                        <div className="member-avatar green">LK</div>
-                    </div>
+             <div className="activity-item">
+                <div className="activity-icon orange"></div>
+                <div className="activity-content">
+                    <p><strong>Meeting scheduled</strong> with <span className="highlight">Marketing Team</span></p>
+                    <span className="activity-time">Yesterday</span>
                 </div>
             </div>
-          </div>
-        </div>
-
-        {/* Done Column */}
-        <div className="board-column">
-          <div className="column-header">
-            <div className="header-left">
-                <div className="status-indicator done"></div>
-                <span className="column-title">Done</span>
-                <span className="column-count">2</span>
-            </div>
-            <div className="header-actions">
-                <button className="add-btn">+</button>
-                <button className="more-btn">...</button>
-            </div>
-          </div>
-
-          <div className="column-content">
-            <div className="task-card">
-                <div className="card-header">
-                    <span className="tag development">Development</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Fix bugs in the CSS code</h3>
-                <p className="card-desc">Fix small bugs that are essential to prepare for the next release.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar pink">HU</div>
-                        <div className="member-avatar orange">NL</div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="task-card">
-                <div className="card-header">
-                    <span className="tag typography">Typography</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Proofread final text</h3>
-                <p className="card-desc">The text provided by marketing department needs to be proofread.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar orange">AG</div>
-                    </div>
-                </div>
-            </div>
-             <div className="task-card">
-                <div className="card-header">
-                    <span className="tag design">Design System</span>
-                    <button className="card-more">...</button>
-                </div>
-                <h3 className="card-title">Responsive design</h3>
-                <p className="card-desc">All designs need to be responsive. The requirement is that it fits all web and mobile screens.</p>
-                <div className="card-footer">
-                    <div className="members">
-                        <div className="member-avatar blue">VH</div>
-                        <div className="member-avatar orange">AG</div>
-                    </div>
-                </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

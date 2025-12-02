@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardHeader } from "./components/dashboard.header";
 import { DashboardSidebar } from "./components/dashboard.sidebar";
-import { getAccessToken, isTokenValid, logout, getProfile, type UserProfile } from "@/services/auth.service";
+import { getAccessToken, isTokenValid, logout } from "@/services/auth.service";
 
 export default function DashboardLayout({
   children,
@@ -12,7 +11,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,17 +22,8 @@ export default function DashboardLayout({
         router.replace("/");
         return;
       }
-
-      try {
-        const userProfile = await getProfile();
-        setUser(userProfile);
-      } catch (error) {
-        console.error("Failed to get profile:", error);
-        logout();
-        router.replace("/");
-      } finally {
-        setIsLoading(false);
-      }
+      // Simpler check: just verify token existence/validity for now since we don't need user profile in layout anymore
+      setIsLoading(false);
     };
 
     checkAuth();
@@ -53,8 +42,7 @@ export default function DashboardLayout({
     <div className="dashboard-layout-v2">
       <DashboardSidebar />
       <div className="dashboard-main-container">
-        <DashboardHeader user={user} />
-        <main className="dashboard-content-area">
+        <main className="dashboard-content-area no-header-padding">
           {children}
         </main>
       </div>
