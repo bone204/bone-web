@@ -11,6 +11,7 @@ export default function ContractsPage() {
     const [error, setError] = useState<string | null>(null);
     const [errorStatus, setErrorStatus] = useState<number | null>(null);
     const [q, setQ] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -50,14 +51,25 @@ export default function ContractsPage() {
     }, []);
 
     const filtered = useMemo(() => {
+        let result = contracts;
+        
+        // Filter by status
+        if (statusFilter !== "all") {
+            result = result.filter(c => c.status === statusFilter);
+        }
+        
+        // Filter by search term
         const term = q.trim().toLowerCase();
-        if (!term) return contracts;
-        return contracts.filter(c =>
-            [c.fullName, c.email, c.phoneNumber, c.businessName, c.citizenId]
-                .filter(Boolean)
-                .some(val => String(val).toLowerCase().includes(term))
-        );
-    }, [contracts, q]);
+        if (term) {
+            result = result.filter(c =>
+                [c.fullName, c.email, c.phoneNumber, c.businessName, c.citizenId]
+                    .filter(Boolean)
+                    .some(val => String(val).toLowerCase().includes(term))
+            );
+        }
+        
+        return result;
+    }, [contracts, q, statusFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const currentPage = Math.min(page, totalPages);
@@ -214,6 +226,18 @@ export default function ContractsPage() {
                             onChange={(e) => { setQ(e.target.value); setPage(1); }}
                             placeholder="🔍 Tìm kiếm theo tên, email, SĐT, CCCD, tên doanh nghiệp..."
                         />
+                        <select
+                            className="contract-search"
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                            style={{ maxWidth: "200px" }}
+                        >
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Từ chối</option>
+                            <option value="SUSPENDED">Tạm ngưng</option>
+                        </select>
                     </div>
 
                     <div className="contract-table-container">

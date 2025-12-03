@@ -11,6 +11,7 @@ export default function VehiclesPage() {
     const [error, setError] = useState<string | null>(null);
     const [errorStatus, setErrorStatus] = useState<number | null>(null);
     const [q, setQ] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -50,14 +51,32 @@ export default function VehiclesPage() {
     }, []);
 
     const filtered = useMemo(() => {
+        let result = vehicles;
+        
+        // Filter by status (approval status or availability status)
+        if (statusFilter !== "all") {
+            result = result.filter(v => {
+                // If approved, filter by availability
+                if (v.status === VehicleApprovalStatus.APPROVED) {
+                    return v.availability === statusFilter;
+                }
+                // Otherwise filter by approval status
+                return v.status === statusFilter;
+            });
+        }
+        
+        // Filter by search term
         const term = q.trim().toLowerCase();
-        if (!term) return vehicles;
-        return vehicles.filter(v =>
-            [v.licensePlate, v.description, v.contractId.toString()]
-                .filter(Boolean)
-                .some(val => String(val).toLowerCase().includes(term))
-        );
-    }, [vehicles, q]);
+        if (term) {
+            result = result.filter(v =>
+                [v.licensePlate, v.description, v.contractId.toString()]
+                    .filter(Boolean)
+                    .some(val => String(val).toLowerCase().includes(term))
+            );
+        }
+        
+        return result;
+    }, [vehicles, q, statusFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const currentPage = Math.min(page, totalPages);
@@ -289,16 +308,32 @@ export default function VehiclesPage() {
 
             {!loading && !error && (
                 <>
-                    <div className="vehicle-toolbar">
-                        <input
-                            className="vehicle-search"
-                            value={q}
-                            onChange={(e) => { setQ(e.target.value); setPage(1); }}
-                            placeholder="🔍 Tìm kiếm theo biển số, mô tả, ID hợp đồng..."
-                        />
-                    </div>
-
-                    <div className="vehicle-table-container">
+            <div className="vehicle-toolbar">
+                <input
+                    className="vehicle-search"
+                    value={q}
+                    onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                    placeholder="🔍 Tìm kiếm theo biển số, mô tả, ID hợp đồng..."
+                />
+                <select
+                    className="vehicle-search"
+                    value={statusFilter}
+                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                    style={{ maxWidth: "200px" }}
+                >
+                    <option value="all">Tất cả trạng thái</option>
+                    <optgroup label="Trạng thái duyệt">
+                        <option value="PENDING">Chờ duyệt</option>
+                        <option value="REJECTED">Từ chối</option>
+                        <option value="INACTIVE">Không hoạt động</option>
+                    </optgroup>
+                    <optgroup label="Tình trạng (xe đã duyệt)">
+                        <option value="AVAILABLE">Sẵn sàng</option>
+                        <option value="RENTED">Đang cho thuê</option>
+                        <option value="MAINTENANCE">Bảo trì</option>
+                    </optgroup>
+                </select>
+            </div>                    <div className="vehicle-table-container">
                         <div className="vehicle-table-wrapper">
                             <table className="vehicle-table">
                                 <thead>
@@ -312,6 +347,7 @@ export default function VehiclesPage() {
                                                 <th style={{ width: "90px" }}>Lượt thuê</th>
                                                 <th style={{ width: "90px" }}>Đánh giá</th>
                                                 <th style={{ width: "120px" }}>Tình trạng</th>
+                                                <th style={{ width: "130px" }}>Ngày cập nhật</th>
                                             </>
                                         )}
                                         {pageData.some(v => v.status !== VehicleApprovalStatus.APPROVED) && (
@@ -347,6 +383,9 @@ export default function VehiclesPage() {
                                                                 <span className={getAvailabilityBadgeClass(vehicle.availability)}>
                                                                     {getAvailabilityText(vehicle.availability)}
                                                                 </span>
+                                                            </td>
+                                                            <td style={{ color: "#64748b", fontSize: "0.85rem" }}>
+                                                                {formatDate(vehicle.updatedAt)}
                                                             </td>
                                                         </>
                                                     ) : (

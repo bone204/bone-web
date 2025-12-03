@@ -11,6 +11,7 @@ export default function UserPage() {
     const [error, setError] = useState<string | null>(null);
     const [errorStatus, setErrorStatus] = useState<number | null>(null);
     const [q, setQ] = useState<string>("");
+    const [tierFilter, setTierFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -50,14 +51,25 @@ export default function UserPage() {
     }, []);
 
     const filtered = useMemo(() => {
+        let result = users;
+        
+        // Filter by tier
+        if (tierFilter !== "all") {
+            result = result.filter(u => u.userTier === tierFilter);
+        }
+        
+        // Filter by search term
         const term = q.trim().toLowerCase();
-        if (!term) return users;
-        return users.filter(u =>
-            [u.username, u.fullName, u.email, u.phone]
-                .filter(Boolean)
-                .some(val => String(val).toLowerCase().includes(term))
-        );
-    }, [users, q]);
+        if (term) {
+            result = result.filter(u =>
+                [u.username, u.fullName, u.email, u.phone]
+                    .filter(Boolean)
+                    .some(val => String(val).toLowerCase().includes(term))
+            );
+        }
+        
+        return result;
+    }, [users, q, tierFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const currentPage = Math.min(page, totalPages);
@@ -154,6 +166,21 @@ export default function UserPage() {
                             onChange={(e) => { setQ(e.target.value); setPage(1); }}
                             placeholder="🔍 Tìm kiếm theo username, họ tên, email, số điện thoại..."
                         />
+                        <select
+                            className="user-search"
+                            value={tierFilter}
+                            onChange={(e) => { setTierFilter(e.target.value); setPage(1); }}
+                            style={{ maxWidth: "200px" }}
+                        >
+                            <option value="all">Tất cả hạng</option>
+                            <option value="standard">Standard</option>
+                            <option value="premium">Premium</option>
+                            <option value="vip">VIP</option>
+                            <option value="dong">Đồng</option>
+                            <option value="kim_cuong">Kim Cương</option>
+                            <option value="bac">Bạc</option>
+                            <option value="vang">Vàng</option>
+                        </select>
                     </div>
 
                     <div className="user-table-container">
