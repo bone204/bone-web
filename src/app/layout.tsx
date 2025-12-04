@@ -2,6 +2,7 @@ import "./globals.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Inter } from "next/font/google";
 import { LayoutWrapper } from "@/utils/layout.wrapper";
+import { ReduxProvider } from "@/store/providers";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className} suppressHydrationWarning>
-        <LayoutWrapper>{children}</LayoutWrapper>
+        <ReduxProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </ReduxProvider>
       </body>
     </html>
   );

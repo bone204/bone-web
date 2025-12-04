@@ -1,18 +1,41 @@
+"use client";
+
 import { HeroCarousel } from "@/components/hero.carousel";
 import { ServicesSection } from "@/components/services.section";
 import { StatsSection } from "@/components/stats.section";
 import { TestimonialSection } from "@/components/testimonial.section";
 import { LocationSection } from "@/components/location.section";
-import { fetchDestinations } from "@/services/destination.service";
-
-export default async function HomePage() {
-  const allLocations = await fetchDestinations({
-    available: true,
-    limit: 16,
-  });
+import { useGetDestinationsQuery } from "@/services/api/destinations.api";
+export default function HomePage() {
+  const { data: allLocations = [], isLoading, isError } =
+    useGetDestinationsQuery({ available: true, limit: 16 });
 
   const featuredLocations = allLocations.slice(0, 6);
   const domesticLocations = allLocations.slice(6, 16);
+
+  if (isLoading) {
+    return (
+      <div className="home-page">
+        <HeroCarousel />
+        <ServicesSection />
+        <StatsSection />
+        <TestimonialSection />
+        <div className="container py-5">Đang tải điểm đến...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="home-page">
+        <HeroCarousel />
+        <ServicesSection />
+        <StatsSection />
+        <TestimonialSection />
+        <div className="container py-5">Không thể tải điểm đến.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">
