@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardSidebar } from "./components/dashboard.sidebar";
-import { getAccessToken, isTokenValid, logout } from "@/services/auth.service";
+import { DashboardSidebar } from "../../components/dashboard.sidebar";
+import { getAccessToken, isTokenValid, logout } from "@/utils/token";
 
 export default function DashboardLayout({
   children,

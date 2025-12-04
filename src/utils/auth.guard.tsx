@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getAccessToken, isTokenValid } from "@/services/auth.service";
+import { getAccessToken, isTokenValid } from "@/utils/token";
 
 /**
  * Component để kiểm tra token và redirect đến dashboard nếu đã đăng nhập

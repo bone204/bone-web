@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchContracts, deleteContract, approveContract, rejectContract, ApiError, ContractStatus, type ContractItem } from "./data/contracts.api";
-import { logout } from "@/services/auth.service";
+import { logout } from "@/utils/token";
 
 export default function ContractsPage() {
     const [contracts, setContracts] = useState<ContractItem[]>([]);

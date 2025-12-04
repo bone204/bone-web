@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchUsers, deleteUser, ApiError, type UserItem } from "./data/users.api";
-import { logout } from "@/services/auth.service";
+import { logout } from "@/utils/token";
 
 export default function UserPage() {
     const [users, setUsers] = useState<UserItem[]>([]);

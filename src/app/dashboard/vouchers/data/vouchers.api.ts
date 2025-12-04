@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/services/auth.service";
+import { getAccessToken } from "@/utils/token";
 
 export type VoucherDiscountType = "percentage" | "fixed";
 

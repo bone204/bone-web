@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchVehicles, deleteVehicle, approveVehicle, rejectVehicle, ApiError, VehicleApprovalStatus, VehicleAvailabilityStatus, type VehicleItem } from "./data/vehicles.api";
-import { logout } from "@/services/auth.service";
+import { logout } from "@/utils/token";
 
 export default function VehiclesPage() {
     const [vehicles, setVehicles] = useState<VehicleItem[]>([]);

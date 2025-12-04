@@ -5,7 +5,7 @@ import { ServicesSection } from "@/components/services.section";
 import { StatsSection } from "@/components/stats.section";
 import { TestimonialSection } from "@/components/testimonial.section";
 import { LocationSection } from "@/components/location.section";
-import { useGetDestinationsQuery } from "@/services/api/destinations.api";
+import { useGetDestinationsQuery } from "@/api/destinations.api";
 export default function HomePage() {
   const { data: allLocations = [], isLoading, isError } =
     useGetDestinationsQuery({ available: true, limit: 16 });

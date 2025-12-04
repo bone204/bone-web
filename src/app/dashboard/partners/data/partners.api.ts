@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/services/auth.service";
+import { getAccessToken } from "@/utils/token";
 
 const API_BASE = "http://localhost:4000";
 

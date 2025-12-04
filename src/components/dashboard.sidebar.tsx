@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import travelIcon from "@/assets/icon/travel.svg";
-import { logout } from "@/services/auth.service";
+import { logout } from "@/utils/token";
 
 const NAV_ITEMS = [
   {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import travelIcon from "@/assets/icon/travel.svg";
-import { login } from "@/services/auth.service";
+import { useLoginMutation } from "@/api/auth.api";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const router = useRouter();
+  const [loginFn] = useLoginMutation();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -41,10 +42,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setIsLoading(true);
 
     try {
-      await login({
+      await loginFn({
         username: formData.username,
         password: formData.password,
-      });
+      }).unwrap();
       
       // Login successful, close modal and redirect to dashboard
       onClose();

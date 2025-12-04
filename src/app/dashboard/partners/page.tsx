@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchCooperations, deleteCooperation, ApiError, type Cooperation } from "./data/partners.api";
-import { logout } from "@/services/auth.service";
+import { logout } from "@/utils/token";
 
 export default function PartnersPage() {
     const [cooperations, setCooperations] = useState<Cooperation[]>([]);
