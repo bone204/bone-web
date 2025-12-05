@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchUsers, deleteUser, ApiError, type UserItem } from "./data/users.api";
+import { 
+    useGetUsersQuery, 
+    useDeleteUserMutation
+} from "./users.api";
 import { logout } from "@/utils/token";
 
 export default function UserPage() {
-    const [users, setUsers] = useState<UserItem[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [errorStatus, setErrorStatus] = useState<number | null>(null);
+    const { data: users = [], isLoading, error, refetch } = useGetUsersQuery();
+    const [deleteUser] = useDeleteUserMutation();
+
     const [q, setQ] = useState<string>("");
     const [tierFilter, setTierFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
@@ -30,25 +32,6 @@ export default function UserPage() {
             return () => document.removeEventListener('click', handleClickOutside);
         }
     }, [openDropdown]);
-
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const data = await fetchUsers();
-                if (mounted) setUsers(data);
-             
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : "Không thể tải danh sách người dùng";
-                const status = e instanceof ApiError ? e.status : null;
-                setError(msg);
-                setErrorStatus(status);
-            } finally {
-                setLoading(false);
-            }
-        })();
-        return () => { mounted = false; };
-    }, []);
 
     const filtered = useMemo(() => {
         let result = users;
@@ -91,23 +74,6 @@ export default function UserPage() {
         }
     };
 
-    const handleRetry = async () => {
-        setLoading(true);
-        setError(null);
-        setErrorStatus(null);
-        try {
-            const data = await fetchUsers();
-            setUsers(data);
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : "Không thể tải danh sách người dùng";
-            const status = e instanceof ApiError ? e.status : null;
-            setError(msg);
-            setErrorStatus(status);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleLoginRedirect = () => {
         logout();
         router.replace("/");
@@ -117,8 +83,7 @@ export default function UserPage() {
         if (!confirm("Bạn có chắc chắn muốn xóa người dùng này?")) return;
         
         try {
-            await deleteUser(userId);
-            setUsers(users.filter(u => u.id !== userId));
+            await deleteUser(userId).unwrap();
             setOpenDropdown(null);
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Không thể xóa người dùng";
@@ -129,29 +94,29 @@ export default function UserPage() {
     return (
         <div className="dashboard-view" onClick={() => setOpenDropdown(null)}>
 
-            {loading && (
+            {isLoading && (
                 <div className="dashboard-loading">
                     <div className="dashboard-spinner"></div>
                     <p style={{ marginTop: "1rem" }}>Đang tải dữ liệu...</p>
                 </div>
             )}
 
-            {error && !loading && (
+            {error && !isLoading && (
                 <div className="dashboard-error">
                     <div className="dashboard-error-icon">⚠️</div>
                     <p style={{ marginBottom: "0.5rem", fontWeight: 600 }}>Không thể tải dữ liệu</p>
-                    <p className="dashboard-error-message">{error}</p>
                     <div className="dashboard-error-actions">
-                        {errorStatus === 401 ? (
+                        {/* @ts-expect-error: error type is unknown */}
+                        {error?.status === 401 ? (
                             <button onClick={handleLoginRedirect} className="dashboard-btn dashboard-btn--primary">Đăng nhập</button>
                         ) : (
-                            <button onClick={handleRetry} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
+                            <button onClick={() => refetch()} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
                         )}
                     </div>
                 </div>
             )}
 
-            {!loading && !error && (
+            {!isLoading && !error && (
                 <>
                     <div className="dashboard-toolbar">
                         <input
@@ -300,4 +265,3 @@ export default function UserPage() {
         </div>
     );
 }
-

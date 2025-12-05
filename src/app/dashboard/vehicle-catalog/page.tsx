@@ -3,16 +3,15 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import {
-  fetchVehicleCatalog,
-  fetchVehicleCatalogById,
-  deleteVehicleCatalog,
+  useGetVehicleCatalogsQuery,
+  useDeleteVehicleCatalogMutation,
   type VehicleCatalogItem,
-} from "./data/vehicle-catalog.api";
+} from "./vehicle-catalog.api";
 
 export default function VehicleCatalogPage() {
-  const [catalogs, setCatalogs] = useState<VehicleCatalogItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: catalogs = [], isLoading, error, refetch } = useGetVehicleCatalogsQuery();
+  const [deleteVehicleCatalog] = useDeleteVehicleCatalogMutation();
+
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -26,42 +25,22 @@ export default function VehicleCatalogPage() {
   // Modal state
   const [selectedCatalog, setSelectedCatalog] = useState<VehicleCatalogItem | null>(null);
 
-  useEffect(() => {
-    loadCatalogs();
-  }, []);
-
-  const loadCatalogs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchVehicleCatalog();
-      setCatalogs(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách danh mục xe");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xóa danh mục xe này?")) return;
     
     try {
-      await deleteVehicleCatalog(id);
-      setCatalogs(catalogs.filter((c) => c.id !== id));
+      await deleteVehicleCatalog(id).unwrap();
       setOpenDropdown(null);
     } catch (err: unknown) {
       alert("Không thể xóa danh mục xe: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
     }
   };
 
-  const handleViewDetail = async (id: number) => {
-    try {
-      const catalog = await fetchVehicleCatalogById(id);
+  const handleViewDetail = (id: number) => {
+    const catalog = catalogs.find(c => c.id === id);
+    if (catalog) {
       setSelectedCatalog(catalog);
       setOpenDropdown(null);
-    } catch (err: unknown) {
-      alert("Không thể tải chi tiết: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
     }
   };
 
@@ -102,7 +81,18 @@ export default function VehicleCatalogPage() {
 
     // Filter by type
     if (typeFilter && typeFilter !== "all") {
-      result = result.filter((c) => c.type?.trim().toLowerCase() === typeFilter.toLowerCase());
+      result = result.filter((c) => {
+        const type = c.type?.toLowerCase().trim();
+        const filter = typeFilter.toLowerCase();
+        
+        if (filter === 'car') return type === 'car' || type === 'ô tô';
+        if (filter === 'motorbike') return type === 'motorbike' || type === 'xe máy';
+        if (filter === 'bicycle') return type === 'bicycle' || type === 'xe đạp';
+        if (filter === 'truck') return type === 'truck' || type === 'xe tải';
+        if (filter === 'van') return type === 'van' || type === 'xe van';
+        
+        return type === filter;
+      });
     }
 
     // Search by brand, model, color, or type
@@ -120,18 +110,14 @@ export default function VehicleCatalogPage() {
     return result;
   }, [catalogs, q, typeFilter]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [q, typeFilter]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginatedCatalogs = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="dashboard-loading">
         <div className="dashboard-spinner"></div>
-        Đang tải danh sách danh mục xe...
+        <p style={{ marginTop: "1rem" }}>Đang tải danh sách danh mục xe...</p>
       </div>
     );
   }
@@ -139,9 +125,10 @@ export default function VehicleCatalogPage() {
   if (error) {
     return (
       <div className="dashboard-error">
-        <p>⚠️ {error}</p>
+        <div className="dashboard-error-icon">⚠️</div>
+        <p style={{ marginBottom: "0.5rem", fontWeight: 600 }}>Không thể tải dữ liệu</p>
         <div className="dashboard-error-actions">
-          <button className="dashboard-btn dashboard-btn--primary" onClick={loadCatalogs}>
+          <button className="dashboard-btn dashboard-btn--primary" onClick={() => refetch()}>
             Thử lại
           </button>
         </div>
@@ -156,12 +143,12 @@ export default function VehicleCatalogPage() {
           type="text"
           placeholder="🔍 Tìm theo hãng, mẫu xe, màu sắc..."
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setPage(1); }}
           className="dashboard-search"
         />
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
           className="dashboard-search"
           style={{ maxWidth: "200px" }}
         >
@@ -301,56 +288,51 @@ export default function VehicleCatalogPage() {
                   />
                 </div>
               )}
+              
               <div className="dashboard-detail-grid">
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">ID</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.id}</span>
+                  <label>ID</label>
+                  <p>#{selectedCatalog.id}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Loại xe</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.type}</span>
+                  <label>Loại xe</label>
+                  <p>{selectedCatalog.type}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Hãng</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.brand}</span>
+                  <label>Hãng</label>
+                  <p>{selectedCatalog.brand}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Mẫu xe</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.model}</span>
+                  <label>Mẫu xe</label>
+                  <p>{selectedCatalog.model}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Màu sắc</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.color}</span>
+                  <label>Màu sắc</label>
+                  <p>{selectedCatalog.color}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Số chỗ ngồi</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.seatingCapacity}</span>
+                  <label>Số chỗ</label>
+                  <p>{selectedCatalog.seatingCapacity}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Nhiên liệu</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.fuelType || "—"}</span>
+                  <label>Nhiên liệu</label>
+                  <p>{selectedCatalog.fuelType || "—"}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Tốc độ tối đa</span>
-                  <span className="dashboard-detail-value">
-                    {selectedCatalog.maxSpeed ? `${selectedCatalog.maxSpeed} km/h` : "—"}
-                  </span>
+                  <label>Tốc độ tối đa</label>
+                  <p>{selectedCatalog.maxSpeed ? `${selectedCatalog.maxSpeed} km/h` : "—"}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Hộp số</span>
-                  <span className="dashboard-detail-value">{selectedCatalog.transmission || "—"}</span>
+                  <label>Hộp số</label>
+                  <p>{selectedCatalog.transmission || "—"}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Ngày tạo</span>
-                  <span className="dashboard-detail-value">
-                    {new Date(selectedCatalog.createdAt).toLocaleString("vi-VN")}
-                  </span>
+                  <label>Ngày tạo</label>
+                  <p>{new Date(selectedCatalog.createdAt).toLocaleString("vi-VN")}</p>
                 </div>
                 <div className="dashboard-detail-item">
-                  <span className="dashboard-detail-label">Ngày cập nhật</span>
-                  <span className="dashboard-detail-value">
-                    {new Date(selectedCatalog.updatedAt).toLocaleString("vi-VN")}
-                  </span>
+                  <label>Cập nhật lần cuối</label>
+                  <p>{new Date(selectedCatalog.updatedAt).toLocaleString("vi-VN")}</p>
                 </div>
               </div>
             </div>

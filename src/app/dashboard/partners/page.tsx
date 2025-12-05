@@ -2,21 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchCooperations, deleteCooperation, ApiError, type Cooperation } from "./data/partners.api";
+import { 
+    useGetPartnersQuery, 
+    useDeletePartnerMutation, 
+    type Partner 
+} from "./partners.api";
 import { logout } from "@/utils/token";
 
 export default function PartnersPage() {
-    const [cooperations, setCooperations] = useState<Cooperation[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [errorStatus, setErrorStatus] = useState<number | null>(null);
+    const { data: partners = [], isLoading, error, refetch } = useGetPartnersQuery();
+    const [deletePartner] = useDeletePartnerMutation();
+
     const [q, setQ] = useState<string>("");
     const [typeFilter, setTypeFilter] = useState<string>("all");
     const [activeFilter, setActiveFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
-    const [selectedCooperation, setSelectedCooperation] = useState<Cooperation | null>(null);
+    const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
     const pageSize = 7;
     const router = useRouter();
 
@@ -33,26 +36,8 @@ export default function PartnersPage() {
         }
     }, [openDropdown]);
 
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const data = await fetchCooperations();
-                if (mounted) setCooperations(data);
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : "Không thể tải danh sách đối tác";
-                const status = e instanceof ApiError ? e.status : null;
-                setError(msg);
-                setErrorStatus(status);
-            } finally {
-                setLoading(false);
-            }
-        })();
-        return () => { mounted = false; };
-    }, []);
-
     const filtered = useMemo(() => {
-        let result = cooperations;
+        let result = partners;
         
         // Filter by type
         if (typeFilter !== "all") {
@@ -79,7 +64,7 @@ export default function PartnersPage() {
         }
         
         return result;
-    }, [cooperations, q, typeFilter, activeFilter]);
+    }, [partners, q, typeFilter, activeFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const currentPage = Math.min(page, totalPages);
@@ -110,76 +95,60 @@ export default function PartnersPage() {
         }
     };
 
-    const handleRetry = async () => {
-        setLoading(true);
-        setError(null);
-        setErrorStatus(null);
-        try {
-            const data = await fetchCooperations();
-            setCooperations(data);
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : "Không thể tải danh sách đối tác";
-            const status = e instanceof ApiError ? e.status : null;
-            setError(msg);
-            setErrorStatus(status);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleLogout = () => {
         logout();
         router.replace("/");
     };
 
-    const handleDeleteCooperation = async (id: number) => {
-        const coop = cooperations.find(c => c.id === id);
-        if (!confirm(`Bạn có chắc muốn xóa đối tác ${coop?.name}?`)) return;
+    const handleDeletePartner = async (id: number) => {
+        const partner = partners.find(c => c.id === id);
+        if (!confirm(`Bạn có chắc muốn xóa đối tác ${partner?.name}?`)) return;
         try {
-            await deleteCooperation(id);
-            setCooperations(prev => prev.filter(c => c.id !== id));
+            await deletePartner(id).unwrap();
             setOpenDropdown(null);
             setDropdownPosition(null);
         } catch (e) {
-            alert(e instanceof Error ? e.message : "Không thể xóa đối tác");
+            const msg = e instanceof Error ? e.message : "Không thể xóa đối tác";
+            alert(msg);
         }
     };
 
-    const handleViewDetail = (cooperation: Cooperation) => {
-        setSelectedCooperation(cooperation);
+    const handleViewDetail = (partner: Partner) => {
+        setSelectedPartner(partner);
         setOpenDropdown(null);
         setDropdownPosition(null);
     };
 
     const handleCloseModal = () => {
-        setSelectedCooperation(null);
+        setSelectedPartner(null);
     };
 
     return (
         <div className="dashboard-view" onClick={() => { setOpenDropdown(null); setDropdownPosition(null); }}>
-            {loading && (
+            {isLoading && (
                 <div className="dashboard-loading">
                     <div className="dashboard-spinner"></div>
                     <p>Đang tải dữ liệu...</p>
                 </div>
             )}
 
-            {error && (
+            {error && !isLoading && (
                 <div className="dashboard-error">
                     <div className="dashboard-error-icon">⚠️</div>
                     <h2 className="dashboard-error-title">Lỗi</h2>
-                    <p className="dashboard-error-message">{error}</p>
+                    <p className="dashboard-error-message">Không thể tải dữ liệu</p>
                     <div className="dashboard-error-actions">
-                        {errorStatus === 401 ? (
+                        {/* @ts-expect-error: error type is unknown */}
+                        {error?.status === 401 ? (
                             <button onClick={handleLogout} className="dashboard-btn dashboard-btn--primary">Đăng nhập</button>
                         ) : (
-                            <button onClick={handleRetry} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
+                            <button onClick={() => refetch()} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
                         )}
                     </div>
                 </div>
             )}
 
-            {!loading && !error && (
+            {!isLoading && !error && (
                 <>
                     <div className="dashboard-toolbar">
                         <input
@@ -237,28 +206,28 @@ export default function PartnersPage() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        pageData.map((coop) => {
+                                        pageData.map((partner) => {
                                             return (
-                                                <tr key={coop.id}>
-                                                    <td style={{ fontWeight: 600 }}>#{coop.id}</td>
-                                                    <td style={{ fontWeight: 600 }}>{coop.name}</td>
-                                                    <td style={{ textTransform: "capitalize" }}>{coop.type}</td>
+                                                <tr key={partner.id}>
+                                                    <td style={{ fontWeight: 600 }}>#{partner.id}</td>
+                                                    <td style={{ fontWeight: 600 }}>{partner.name}</td>
+                                                    <td style={{ textTransform: "capitalize" }}>{partner.type}</td>
                                                     <td style={{ color: "#059669", fontWeight: 600 }}>
-                                                        {Number(coop.revenue).toLocaleString("vi-VN")} đ
+                                                        {Number(partner.revenue).toLocaleString("vi-VN")} đ
                                                     </td>
                                                     <td>
                                                         <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                                                            <span style={{ fontWeight: 600 }}>{coop.averageRating}</span>
+                                                            <span style={{ fontWeight: 600 }}>{partner.averageRating}</span>
                                                             <span>⭐</span>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span className={getStatusBadgeClass(coop.active)}>
-                                                            {getStatusText(coop.active)}
+                                                        <span className={getStatusBadgeClass(partner.active)}>
+                                                            {getStatusText(partner.active)}
                                                         </span>
                                                     </td>
                                                     <td style={{ color: "#64748b", fontSize: "0.85rem" }}>
-                                                        {formatDate(coop.createdAt)}
+                                                        {formatDate(partner.createdAt)}
                                                     </td>
                                                     <td className="dashboard-action-cell">
                                                         <button
@@ -276,7 +245,7 @@ export default function PartnersPage() {
                                                                     top: shouldShowAbove ? rect.top - dropdownHeight : rect.bottom + 2,
                                                                     right: window.innerWidth - rect.right
                                                                 });
-                                                                setOpenDropdown(openDropdown === coop.id ? null : coop.id);
+                                                                setOpenDropdown(openDropdown === partner.id ? null : partner.id);
                                                             }}
                                                         >
                                                             ⋮
@@ -331,12 +300,12 @@ export default function PartnersPage() {
                     onClick={(e) => e.stopPropagation()}
                 >
                     {pageData.find(c => c.id === openDropdown) && (() => {
-                        const coop = pageData.find(c => c.id === openDropdown)!;
+                        const partner = pageData.find(c => c.id === openDropdown)!;
                         return (
                             <>
                                 <button
                                     className="dashboard-dropdown-item"
-                                    onClick={() => handleViewDetail(coop)}
+                                    onClick={() => handleViewDetail(partner)}
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -346,7 +315,7 @@ export default function PartnersPage() {
                                 </button>
                                 <button
                                     className="dashboard-dropdown-item dashboard-dropdown-item--danger"
-                                    onClick={() => handleDeleteCooperation(coop.id)}
+                                    onClick={() => handleDeletePartner(partner.id)}
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polyline points="3 6 5 6 21 6" />
@@ -360,14 +329,14 @@ export default function PartnersPage() {
                 </div>
             )}
 
-            {selectedCooperation && (
+            {selectedPartner && (
                 <div className="dashboard-modal-overlay" onClick={handleCloseModal}>
                     <div className="dashboard-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="dashboard-modal-header">
                             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                <h2 className="dashboard-modal-title">Chi tiết đối tác #{selectedCooperation.id}</h2>
-                                <span className={getStatusBadgeClass(selectedCooperation.active)}>
-                                    {getStatusText(selectedCooperation.active)}
+                                <h2 className="dashboard-modal-title">Chi tiết đối tác #{selectedPartner.id}</h2>
+                                <span className={getStatusBadgeClass(selectedPartner.active)}>
+                                    {getStatusText(selectedPartner.active)}
                                 </span>
                             </div>
                             <button className="dashboard-modal-close" onClick={handleCloseModal}>
@@ -381,70 +350,70 @@ export default function PartnersPage() {
                             <div className="dashboard-detail-grid">
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Mã đối tác</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.code || "—"}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.code || "—"}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Tên đối tác</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.name}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.name}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Loại hình</span>
-                                    <span className="dashboard-detail-value" style={{ textTransform: "capitalize" }}>{selectedCooperation.type}</span>
+                                    <span className="dashboard-detail-value" style={{ textTransform: "capitalize" }}>{selectedPartner.type}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Người phụ trách</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.bossName || "—"}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.bossName || "—"}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Email</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.bossEmail || "—"}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.bossEmail || "—"}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Số điện thoại</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.bossPhone || "—"}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.bossPhone || "—"}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Địa chỉ</span>
                                     <span className="dashboard-detail-value">
-                                        {[selectedCooperation.address, selectedCooperation.district, selectedCooperation.city, selectedCooperation.province]
+                                        {[selectedPartner.address, selectedPartner.district, selectedPartner.city, selectedPartner.province]
                                             .filter(Boolean).join(", ") || "—"}
                                     </span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Số đối tượng</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.numberOfObjects}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.numberOfObjects}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Số loại đối tượng</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.numberOfObjectTypes}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.numberOfObjectTypes}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Lượt đặt</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.bookingTimes}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.bookingTimes}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Doanh thu</span>
-                                    <span className="dashboard-detail-value">{Number(selectedCooperation.revenue).toLocaleString("vi-VN")} đ</span>
+                                    <span className="dashboard-detail-value">{Number(selectedPartner.revenue).toLocaleString("vi-VN")} đ</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Đánh giá TB</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.averageRating} ⭐</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.averageRating} ⭐</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Ngày ký HĐ</span>
-                                    <span className="dashboard-detail-value">{formatDate(selectedCooperation.contractDate)}</span>
+                                    <span className="dashboard-detail-value">{formatDate(selectedPartner.contractDate)}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Thời hạn HĐ</span>
-                                    <span className="dashboard-detail-value">{selectedCooperation.contractTerm || "—"}</span>
+                                    <span className="dashboard-detail-value">{selectedPartner.contractTerm || "—"}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Ngày tạo</span>
-                                    <span className="dashboard-detail-value">{formatDate(selectedCooperation.createdAt)}</span>
+                                    <span className="dashboard-detail-value">{formatDate(selectedPartner.createdAt)}</span>
                                 </div>
                                 <div className="dashboard-detail-item">
                                     <span className="dashboard-detail-label">Ngày cập nhật</span>
-                                    <span className="dashboard-detail-value">{formatDate(selectedCooperation.updatedAt)}</span>
+                                    <span className="dashboard-detail-value">{formatDate(selectedPartner.updatedAt)}</span>
                                 </div>
                             </div>
                         </div>

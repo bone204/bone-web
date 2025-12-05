@@ -2,14 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchContracts, deleteContract, approveContract, rejectContract, ApiError, ContractStatus, type ContractItem } from "./data/contracts.api";
+import { 
+    useGetContractsQuery, 
+    useDeleteContractMutation, 
+    useApproveContractMutation, 
+    useRejectContractMutation,
+    ContractStatus, 
+    type ContractItem 
+} from "./contracts.api";
 import { logout } from "@/utils/token";
 
 export default function ContractsPage() {
-    const [contracts, setContracts] = useState<ContractItem[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [errorStatus, setErrorStatus] = useState<number | null>(null);
+    const { data: contracts = [], isLoading, error, refetch } = useGetContractsQuery();
+    const [deleteContract] = useDeleteContractMutation();
+    const [approveContract] = useApproveContractMutation();
+    const [rejectContract] = useRejectContractMutation();
+
     const [q, setQ] = useState<string>("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [page, setPage] = useState<number>(1);
@@ -31,24 +39,6 @@ export default function ContractsPage() {
             return () => document.removeEventListener('click', handleClickOutside);
         }
     }, [openDropdown]);
-
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const data = await fetchContracts();
-                if (mounted) setContracts(data);
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : "Không thể tải danh sách hợp đồng";
-                const status = e instanceof ApiError ? e.status : null;
-                setError(msg);
-                setErrorStatus(status);
-            } finally {
-                setLoading(false);
-            }
-        })();
-        return () => { mounted = false; };
-    }, []);
 
     const filtered = useMemo(() => {
         let result = contracts;
@@ -117,23 +107,6 @@ export default function ContractsPage() {
         }
     };
 
-    const handleRetry = async () => {
-        setLoading(true);
-        setError(null);
-        setErrorStatus(null);
-        try {
-            const data = await fetchContracts();
-            setContracts(data);
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : "Không thể tải danh sách hợp đồng";
-            const status = e instanceof ApiError ? e.status : null;
-            setError(msg);
-            setErrorStatus(status);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleLoginRedirect = () => {
         logout();
         router.replace("/");
@@ -152,8 +125,7 @@ export default function ContractsPage() {
         if (!confirm("Bạn có chắc chắn muốn xóa hợp đồng này?")) return;
 
         try {
-            await deleteContract(contractId);
-            setContracts(contracts.filter(c => c.id !== contractId));
+            await deleteContract(contractId).unwrap();
             setOpenDropdown(null);
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Không thể xóa hợp đồng";
@@ -165,10 +137,7 @@ export default function ContractsPage() {
         if (!confirm("Bạn có chắc chắn muốn duyệt hợp đồng này?")) return;
 
         try {
-            await approveContract(contractId);
-            setContracts(contracts.map(c => 
-                c.id === contractId ? { ...c, status: ContractStatus.APPROVED } : c
-            ));
+            await approveContract(contractId).unwrap();
             setOpenDropdown(null);
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Không thể duyệt hợp đồng";
@@ -181,10 +150,7 @@ export default function ContractsPage() {
         if (!reason || !reason.trim()) return;
 
         try {
-            await rejectContract(contractId, reason);
-            setContracts(contracts.map(c => 
-                c.id === contractId ? { ...c, status: ContractStatus.REJECTED } : c
-            ));
+            await rejectContract({ id: contractId, reason }).unwrap();
             setOpenDropdown(null);
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Không thể từ chối hợp đồng";
@@ -195,7 +161,7 @@ export default function ContractsPage() {
     return (
         <div className="dashboard-view" onClick={() => setOpenDropdown(null)}>
 
-            {loading && (
+            {isLoading && (
                 <div className="dashboard-loading">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
                         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -204,7 +170,7 @@ export default function ContractsPage() {
                 </div>
             )}
 
-            {error && !loading && (
+            {error && !isLoading && (
                 <div className="dashboard-error">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ margin: "0 auto 1rem" }}>
                         <circle cx="12" cy="12" r="10" />
@@ -212,18 +178,18 @@ export default function ContractsPage() {
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     <p style={{ marginBottom: "0.5rem", fontWeight: 600 }}>Không thể tải dữ liệu</p>
-                    <p style={{ fontSize: "0.9rem", color: "#64748b" }}>{error}</p>
                     <div className="dashboard-error-actions">
-                        {errorStatus === 401 ? (
+                        {/* @ts-expect-error: error type is unknown */}
+                        {error?.status === 401 ? (
                             <button onClick={handleLoginRedirect} className="dashboard-btn dashboard-btn--primary">Đăng nhập</button>
                         ) : (
-                            <button onClick={handleRetry} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
+                            <button onClick={() => refetch()} className="dashboard-btn dashboard-btn--primary">Thử lại</button>
                         )}
                     </div>
                 </div>
             )}
 
-            {!loading && !error && (
+            {!isLoading && !error && (
                 <>
                     <div className="dashboard-toolbar">
                         <input
@@ -239,10 +205,10 @@ export default function ContractsPage() {
                             style={{ maxWidth: "200px" }}
                         >
                             <option value="all">Tất cả trạng thái</option>
-                            <option value="PENDING">Chờ duyệt</option>
-                            <option value="APPROVED">Đã duyệt</option>
-                            <option value="REJECTED">Từ chối</option>
-                            <option value="SUSPENDED">Tạm ngưng</option>
+                            <option value={ContractStatus.PENDING}>Chờ duyệt</option>
+                            <option value={ContractStatus.APPROVED}>Đã duyệt</option>
+                            <option value={ContractStatus.REJECTED}>Từ chối</option>
+                            <option value={ContractStatus.SUSPENDED}>Tạm ngưng</option>
                         </select>
                     </div>
 
@@ -488,5 +454,3 @@ export default function ContractsPage() {
         </div>
     );
 }
-
-

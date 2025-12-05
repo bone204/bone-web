@@ -2,18 +2,18 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
-  fetchVouchers,
-  fetchVoucherById,
-  deleteVoucher,
-  createVoucher,
+  useGetVouchersQuery,
+  useDeleteVoucherMutation,
+  useCreateVoucherMutation,
   type VoucherItem,
   type CreateVoucherPayload,
-} from "./data/vouchers.api";
+} from "./vouchers.api";
 
 export default function VouchersPage() {
-  const [vouchers, setVouchers] = useState<VoucherItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: vouchers = [], isLoading, error, refetch } = useGetVouchersQuery();
+  const [deleteVoucher] = useDeleteVoucherMutation();
+  const [createVoucher] = useCreateVoucherMutation();
+
   const [q, setQ] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -42,43 +42,21 @@ export default function VouchersPage() {
     active: true,
   });
 
-  useEffect(() => {
-    loadVouchers();
-  }, []);
-
-  const loadVouchers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchVouchers();
-      setVouchers(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách voucher");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xóa voucher này?")) return;
 
     try {
-      await deleteVoucher(id);
-      setVouchers(vouchers.filter((v) => v.id !== id));
+      await deleteVoucher(id).unwrap();
       setOpenDropdown(null);
     } catch (err: unknown) {
-      alert("Không thể xóa voucher: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
+      // @ts-expect-error: error type is unknown
+      alert("Không thể xóa voucher: " + (err?.data?.message || err?.message || "Lỗi không xác định"));
     }
   };
 
-  const handleViewDetail = async (id: number) => {
-    try {
-      const voucher = await fetchVoucherById(id);
-      setSelectedVoucher(voucher);
-      setOpenDropdown(null);
-    } catch (err: unknown) {
-      alert("Không thể tải chi tiết: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
-    }
+  const handleViewDetail = (voucher: VoucherItem) => {
+    setSelectedVoucher(voucher);
+    setOpenDropdown(null);
   };
 
   const handleCreateVoucher = async (e: React.FormEvent) => {
@@ -99,7 +77,7 @@ export default function VouchersPage() {
       if (formData.startsAt) payload.startsAt = new Date(formData.startsAt).toISOString();
       if (formData.expiresAt) payload.expiresAt = new Date(formData.expiresAt).toISOString();
 
-      await createVoucher(payload);
+      await createVoucher(payload).unwrap();
 
       alert("✅ Tạo voucher thành công!");
       setShowCreateModal(false);
@@ -115,9 +93,9 @@ export default function VouchersPage() {
         expiresAt: "",
         active: true,
       });
-      loadVouchers();
     } catch (err: unknown) {
-      alert("❌ " + (err instanceof Error ? err.message : "Lỗi không xác định"));
+      // @ts-expect-error: error type is unknown
+      alert("❌ " + (err?.data?.message || err?.message || "Lỗi không xác định"));
     }
   };
 
@@ -175,14 +153,10 @@ export default function VouchersPage() {
     return result;
   }, [vouchers, q, activeFilter]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [q, activeFilter]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginatedVouchers = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const formatPrice = (value: string) => {
+  const formatPrice = (value: string | number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
@@ -194,7 +168,7 @@ export default function VouchersPage() {
     return new Date(dateStr).toLocaleDateString("vi-VN");
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="dashboard-loading">
         <div className="dashboard-spinner"></div>
@@ -206,9 +180,10 @@ export default function VouchersPage() {
   if (error) {
     return (
       <div className="dashboard-error">
-        <p>⚠️ {error}</p>
+        {/* @ts-expect-error: error type is unknown */}
+        <p>⚠️ {error?.data?.message || "Không thể tải danh sách voucher"}</p>
         <div className="dashboard-error-actions">
-          <button className="dashboard-btn dashboard-btn--primary" onClick={loadVouchers}>
+          <button className="dashboard-btn dashboard-btn--primary" onClick={() => refetch()}>
             Thử lại
           </button>
         </div>
@@ -223,12 +198,12 @@ export default function VouchersPage() {
           type="text"
           placeholder="🔍 Tìm theo mã, mô tả..."
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setPage(1); }}
           className="dashboard-search"
         />
         <select
           value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value)}
+          onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
           className="dashboard-search"
           style={{ maxWidth: "200px" }}
         >
@@ -248,12 +223,12 @@ export default function VouchersPage() {
               <tr>
                 <th style={{ width: "60px" }}>ID</th>
                 <th style={{ width: "120px" }}>Mã</th>
-                <th style={{ width: "200px" }}>Mô tả</th>
+                <th style={{ width: "180px" }}>Mô tả</th>
                 <th style={{ width: "100px" }}>Loại</th>
                 <th style={{ width: "120px" }}>Giá trị</th>
                 <th style={{ width: "100px" }}>Đã dùng</th>
                 <th style={{ width: "120px" }}>Hết hạn</th>
-                <th style={{ width: "100px" }}>Trạng thái</th>
+                <th style={{ width: "120px" }}>Trạng thái</th>
                 <th style={{ width: "60px" }}></th>
               </tr>
             </thead>
@@ -285,7 +260,7 @@ export default function VouchersPage() {
                     <td>
                       <span
                         className={`dashboard-badge dashboard-badge--${
-                          voucher.active ? "active" : "inactive"
+                          voucher.active ? "success" : "neutral"
                         }`}
                       >
                         {voucher.active ? "Hoạt động" : "Không hoạt động"}
@@ -318,15 +293,23 @@ export default function VouchersPage() {
               zIndex: 1000,
             }}
           >
-            <button className="dashboard-dropdown-item" onClick={() => handleViewDetail(openDropdown)}>
-              <span>👁️</span> Xem chi tiết
-            </button>
-            <button
-              className="dashboard-dropdown-item dashboard-dropdown-item--danger"
-              onClick={() => handleDelete(openDropdown)}
-            >
-              <span>🗑️</span> Xóa
-            </button>
+            {(() => {
+                const voucher = vouchers.find(v => v.id === openDropdown);
+                if (!voucher) return null;
+                return (
+                    <>
+                        <button className="dashboard-dropdown-item" onClick={() => handleViewDetail(voucher)}>
+                        <span>👁️</span> Xem chi tiết
+                        </button>
+                        <button
+                        className="dashboard-dropdown-item dashboard-dropdown-item--danger"
+                        onClick={() => handleDelete(openDropdown)}
+                        >
+                        <span>🗑️</span> Xóa
+                        </button>
+                    </>
+                );
+            })()}
           </div>
         )}
 
@@ -422,7 +405,13 @@ export default function VouchersPage() {
                 <div className="dashboard-detail-item">
                   <span className="dashboard-detail-label">Trạng thái</span>
                   <span className="dashboard-detail-value">
-                    {selectedVoucher.active ? "Hoạt động" : "Không hoạt động"}
+                    <span
+                      className={`dashboard-badge dashboard-badge--${
+                        selectedVoucher.active ? "success" : "neutral"
+                      }`}
+                    >
+                      {selectedVoucher.active ? "Hoạt động" : "Không hoạt động"}
+                    </span>
                   </span>
                 </div>
                 <div className="dashboard-detail-item" style={{ gridColumn: "1 / -1" }}>
